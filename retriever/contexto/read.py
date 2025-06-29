@@ -4,37 +4,40 @@ from . import model
 
 def get_texts_by_embedding(db: Session, query_embedding: list[float], chat_id: int) -> list[str]:
     vector_str = f"[{','.join(str(x) for x in query_embedding)}]"
-    
+
     query = text("""
-        SELECT index, embeddings <=> (:embedding)::vector as similarity_score
-        FROM vectorial.session_embeddings
-        WHERE id_session = :chat_id
-        ORDER BY embeddings <=> (:embedding)::vector
-        LIMIT 5
+    SELECT
+        se.index,
+        se.title,
+        se.texto,
+        (1 - (se.embeddings <=> (:embedding)::vector)) AS cosine_similarity,
+        se.rating,
+        (0.5 * (1 - (se.embeddings <=> (:embedding)::vector)) + 0.5 * (se.rating / 5.0)) AS combined_score
+    FROM
+        vectorial.session_embeddings se
+    ORDER BY
+        combined_score DESC
+    LIMIT 10
     """)
-    
-    # Execute with the string representation
-    most_similar_vectors = db.execute(
+
+    most_similar_results = db.execute(
         query,
         {
             "embedding": vector_str,
-            "chat_id": chat_id
         }
     ).fetchall()
 
-    if not most_similar_vectors:
-        raise ValueError(f"No matching vectors found for chat_id {chat_id}")
-    
-    # Get the indexes of the most similar vectors
-    vector_indexes = [vector.index for vector in most_similar_vectors]
+    if not most_similar_results:
+        return []
 
-    # Fetch the texto fields for all matching indexes
-    results = (
-        db.query(model.FilesDB.texto)
-        .filter(model.FilesDB.index.in_(vector_indexes))
-        .all()
-    )
+    final_formatted_texts = []
+    for res in most_similar_results:
+        final_formatted_texts.append(
+            f"titulo: {res.title} "
+            f"resumen: {res.texto} "
+            f"score_total: {res.combined_score:.4f} "
+            f"score_similaridad_coseno: {res.cosine_similarity:.4f} "
+            f"score_rating: {res.rating:.2f}" 
+        )
 
-    # Extract the texto fields
-    textos = [result.texto for result in results]
-    return textos
+    return final_formatted_texts

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text
+from sqlalchemy import Column, Integer, Text, Float
 from sqlalchemy.dialects.postgresql import ARRAY
 from database.db import Base
 from sqlalchemy import Float
@@ -10,3 +10,5 @@ class FilesDB(Base):
     id_session = Column(Integer, nullable=False)
     texto = Column(Text, nullable=False)
     embeddings = Column(ARRAY(Float), nullable=False)
+    title = Column(Text, nullable=False)
+    rating = Column(Float)

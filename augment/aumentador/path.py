@@ -23,7 +23,7 @@ async def augment_search(request: schema.AugmentRequest):
     logger.info(f"Received request: {request}")
     try:
         genai.configure(api_key=api_key)
-        model = "gemini-1.5-flash"
+        model = "gemini-2.5-flash"
 
         prompt = structure_question(request.text, request.prompt)
 

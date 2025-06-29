@@ -12,7 +12,9 @@ CREATE TABLE vectorial.session_embeddings (
     index SERIAL PRIMARY KEY,    -- Unique identifier for each row
     id_session INT NOT NULL,  -- Unique identifier for each session
     texto TEXT NOT NULL,         -- Column to store the text of the session
-    embeddings vector NOT NULL   -- Column to store vector embeddings
+    embeddings vector NOT NULL,
+    title TEXT NOT NULL,
+    rating DOUBLE PRECISION   -- Column to store vector embeddings
 );
 
 -- Insert some example data

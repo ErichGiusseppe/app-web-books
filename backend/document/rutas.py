@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent
 env_path = BASE_DIR / '.env'
 load_dotenv(env_path)
 
-DOCUMENT_URL = os.getenv("DOCUMENT_URL") 
+c = os.getenv("DOCUMENT_URL") 
 CLOUD_STORAGE = os.getenv("CLOUD_STORAGE")
 CHUNKING_SERVICE_URL = f"{DOCUMENT_URL}/upload_document"
 

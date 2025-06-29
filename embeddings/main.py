@@ -9,15 +9,26 @@ from database.model import FilesDB
 from database import model as modelo
 from database import engine
 import aiohttp
+import string
 
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://34.132.46.72:8080"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 model = SentenceTransformer("all-MiniLM-L6-v2")  # paraphrase-MiniLM-L3-v2
 modelo.Base.metadata.create_all(bind=engine)
 API_URL_RETRIEVER = "http://retriever:8080/retriever/contexto"
 
 class EmbeddingRequest(BaseModel):
     chat_id: int
+    title: str
     chunks: List[str]
+    rating: float
 
 @app.post("/insert_dummy_data")
 async def insert_dummy_data(db: Session = Depends(get_db)):
@@ -26,7 +37,8 @@ async def insert_dummy_data(db: Session = Depends(get_db)):
         dummy_entry = FilesDB(
             id_session=random.randint(1, 100),
             texto="Texto de prueba",
-            embeddings=[random.uniform(-1, 1) for _ in range(384)] 
+            embeddings=[random.uniform(-1, 1) for _ in range(384)],
+            title = random_word()
         )
         
         db.add(dummy_entry)
@@ -39,7 +51,7 @@ async def insert_dummy_data(db: Session = Depends(get_db)):
         return {"error": str(e)}
     
 
-@app.post("/generate_embeddings")
+@app.post("/generate_embeddings") #fist flow
 async def generate_embeddings(data: EmbeddingRequest, db: Session = Depends(get_db)):
 
     try:
@@ -53,13 +65,13 @@ async def generate_embeddings(data: EmbeddingRequest, db: Session = Depends(get_
         results = []
 
         for chunk, embedding in zip(chunks, embeddings):
-            db_entry = FilesDB(id_session=chat_id, texto=chunk, embeddings=embedding)
+            db_entry = FilesDB(id_session=chat_id, texto=chunk, embeddings=embedding, title=data.title, rating= data.rating)
             db.add(db_entry)
             results.append({"chunk": chunk, "embedding": embedding})
 
         db.commit()  
 
-        return {"chat_id": chat_id, "num_chunks": len(chunks), "data": results}
+        return {"chat_id": chat_id, "num_chunks": len(chunks), "data": results,"title": data.title,"rating": data.rating}
 
     except Exception as e:
         db.rollback() 
@@ -78,6 +90,9 @@ class AugmentResponse(BaseModel):
     response: str
     done: bool = False
     done_reason: Optional[str] = ""
+
+def random_word(length=8):
+    return ''.join(random.choices(string.ascii_letters, k=length))
 
 @app.post("/embed_text", response_model=AugmentResponse, status_code=status.HTTP_201_CREATED)
 async def embed_text(request: TextRequest):
@@ -119,3 +134,4 @@ async def test(request: TextRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     return test
+
